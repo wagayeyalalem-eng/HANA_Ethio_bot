@@ -1,0 +1,6 @@
+python-telegram-bot
+groq
+duckduckgo-search
+gTTS
+PyPDF2
+nest_asyncio
