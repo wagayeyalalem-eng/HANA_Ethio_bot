@@ -1,1 +1,72 @@
-{"cells":[{"cell_type":"code","execution_count":null,"metadata":{"id":"mDjqjAT5VK54"},"outputs":[],"source":[]},{"cell_type":"code","execution_count":null,"metadata":{"id":"WVzpckz8wsQX"},"outputs":[],"source":[]},{"cell_type":"code","execution_count":4,"metadata":{"colab":{"base_uri":"https://localhost:8080/"},"executionInfo":{"elapsed":8323,"status":"ok","timestamp":1770641920341,"user":{"displayName":"Yalalem Wagaye","userId":"15646225802827000299"},"user_tz":-180},"id":"zgnfcVnmtjO1","outputId":"0332d8cb-dbb9-45ff-8063-37c812dbedea"},"outputs":[{"output_type":"stream","name":"stdout","text":["Reading package lists... Done\n","Building dependency tree... Done\n","Reading state information... Done\n","ffmpeg is already the newest version (7:4.4.2-0ubuntu0.22.04.1).\n","0 upgraded, 0 newly installed, 0 to remove and 2 not upgraded.\n","Requirement already satisfied: pydub in /usr/local/lib/python3.12/dist-packages (0.25.1)\n","Requirement already satisfied: gTTS in /usr/local/lib/python3.12/dist-packages (2.5.4)\n","Requirement already satisfied: PyPDF2 in /usr/local/lib/python3.12/dist-packages (3.0.1)\n","Requirement already satisfied: duckduckgo-search in /usr/local/lib/python3.12/dist-packages (8.1.1)\n","Requirement already satisfied: groq in /usr/local/lib/python3.12/dist-packages (1.0.0)\n","Requirement already satisfied: python-telegram-bot in /usr/local/lib/python3.12/dist-packages (22.6)\n","Requirement already satisfied: nest_asyncio in /usr/local/lib/python3.12/dist-packages (1.6.0)\n","Requirement already satisfied: requests<3,>=2.27 in /usr/local/lib/python3.12/dist-packages (from gTTS) (2.32.4)\n","Requirement already satisfied: click<8.2,>=7.1 in /usr/local/lib/python3.12/dist-packages (from gTTS) (8.1.8)\n","Requirement already satisfied: primp>=0.15.0 in /usr/local/lib/python3.12/dist-packages (from duckduckgo-search) (0.15.0)\n","Requirement already satisfied: lxml>=5.3.0 in /usr/local/lib/python3.12/dist-packages (from duckduckgo-search) (6.0.2)\n","Requirement already satisfied: anyio<5,>=3.5.0 in /usr/local/lib/python3.12/dist-packages (from groq) (4.12.1)\n","Requirement already satisfied: distro<2,>=1.7.0 in /usr/local/lib/python3.12/dist-packages (from groq) (1.9.0)\n","Requirement already satisfied: httpx<1,>=0.23.0 in /usr/local/lib/python3.12/dist-packages (from groq) (0.28.1)\n","Requirement already satisfied: pydantic<3,>=1.9.0 in /usr/local/lib/python3.12/dist-packages (from groq) (2.12.3)\n","Requirement already satisfied: sniffio in /usr/local/lib/python3.12/dist-packages (from groq) (1.3.1)\n","Requirement already satisfied: typing-extensions<5,>=4.10 in /usr/local/lib/python3.12/dist-packages (from groq) (4.15.0)\n","Requirement already satisfied: idna>=2.8 in /usr/local/lib/python3.12/dist-packages (from anyio<5,>=3.5.0->groq) (3.11)\n","Requirement already satisfied: certifi in /usr/local/lib/python3.12/dist-packages (from httpx<1,>=0.23.0->groq) (2026.1.4)\n","Requirement already satisfied: httpcore==1.* in /usr/local/lib/python3.12/dist-packages (from httpx<1,>=0.23.0->groq) (1.0.9)\n","Requirement already satisfied: h11>=0.16 in /usr/local/lib/python3.12/dist-packages (from httpcore==1.*->httpx<1,>=0.23.0->groq) (0.16.0)\n","Requirement already satisfied: annotated-types>=0.6.0 in /usr/local/lib/python3.12/dist-packages (from pydantic<3,>=1.9.0->groq) (0.7.0)\n","Requirement already satisfied: pydantic-core==2.41.4 in /usr/local/lib/python3.12/dist-packages (from pydantic<3,>=1.9.0->groq) (2.41.4)\n","Requirement already satisfied: typing-inspection>=0.4.2 in /usr/local/lib/python3.12/dist-packages (from pydantic<3,>=1.9.0->groq) (0.4.2)\n","Requirement already satisfied: charset_normalizer<4,>=2 in /usr/local/lib/python3.12/dist-packages (from requests<3,>=2.27->gTTS) (3.4.4)\n","Requirement already satisfied: urllib3<3,>=1.21.1 in /usr/local/lib/python3.12/dist-packages (from requests<3,>=2.27->gTTS) (2.5.0)\n"]}],"source":["!apt-get install -y ffmpeg\n","!pip install pydub gTTS PyPDF2 duckduckgo-search groq python-telegram-bot nest_asyncio"]},{"cell_type":"code","execution_count":null,"metadata":{"id":"G76LVWgn9Yln"},"outputs":[],"source":["import nest_asyncio\n","import asyncio\n","from groq import Groq\n","from telegram import Update\n","from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes\n","import datetime\n","\n","nest_asyncio.apply()\n","\n","# --- ቁልፎች ---\n","import os\n","GROQ_API_KEY = os.getenv(\"GROQ_API_KEY\")\n","BOT_TOKEN = os.getenv(\"BOT_TOKEN\")\n","groq_client = Groq(api_key=GROQ_API_KEY)\n","\n","# ለእያንዳንዱ ተጠቃሚ ታሪክ ማስቀመጫ (Memory Dictionary)\n","user_memories = {}\n","\n","async def handle_everything(update: Update, context: ContextTypes.DEFAULT_TYPE):\n","    user_id = update.effective_user.id\n","    today = datetime.date.today().strftime(\"%B %d, %Y\")\n","\n","    # 1. የታሪክ ማህደር (Memory) መፍጠር ወይም ማምጣት\n","    if user_id not in user_memories:\n","        user_memories[user_id] = [\n","            {\"role\": \"system\", \"content\":\n","             f\"\"\"Your name is Hana, a Super AI Assistant developed by Yalalem.\n","Creator Profile: Your creator, Yalalem, is a brilliant 2nd-year IT student at the University of Gondar.\n","His vision is to bridge the technology gap in Ethiopia by ensuring everyone has access to advanced technological knowledge.\n","He built you to be a top-tier educational tool that represents the future of Ethiopian Tech.\n","\n","Hana's Core Capabilities:\n","1. IT Expert: You are an expert in Programming (Python, C++, Java), Networking, Database management, and Cyber Security.\n","2. Academic Mentor: Provide step-by-step explanations for complex University-level IT courses.\n","3. Language: Respond in high-quality English. However, if the user asks in Amharic or needs a summary, provide clear Amharic explanations.\n","4. Professionalism: Be inspiring, intelligent, and highly professional. Today is {today}. You have a memory and can remember previous parts of the conversation.\"\"\"}\n","        ]\n","\n","    user_query = update.message.text\n","    if not user_query: return # ለጊዜው ጽሁፍ ብቻ\n","\n","    # 2. የተጠቃሚውን ጥያቄ ወደ ታሪክ መጨመር\n","    user_memories[user_id].append({\"role\": \"user\", \"content\": user_query})\n","\n","    # ታሪኩ በጣም እንዳይረዝም የመጨረሻዎቹን 10 መልእክቶች ብቻ መያዝ (Memory management)\n","    if len(user_memories[user_id]) > 12:\n","        user_memories[user_id] = [user_memories[user_id][0]] + user_memories[user_id][-10:]\n","\n","    await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=\"typing\")\n","\n","    try:\n","        # 3. ሙሉውን ታሪክ (Memory) ወደ Groq መላክ\n","        response = groq_client.chat.completions.create(\n","            messages=user_memories[user_id],\n","            model=\"llama-3.3-70b-versatile\",\n","        )\n","\n","        answer = response.choices[0].message.content\n","\n","        # 4. የ AIውን መልስ ወደ ታሪክ መጨመር (ቀጣይ ጥያቄ ሲመጣ እንዲያስታውሰው)\n","        user_memories[user_id].append({\"role\": \"assistant\", \"content\": answer})\n","\n","        await update.message.reply_text(answer)\n","\n","    except Exception as e:\n","        print(f\"Error: {e}\")\n","        await update.message.reply_text(\"I'm having a little trouble remembering. Let's try again!\")\n","\n","async def main():\n","    app = ApplicationBuilder().token(BOT_TOKEN).build()\n","    app.add_handler(MessageHandler(filters.TEXT, handle_everything))\n","\n","    print(\"Hana now has a Memory! Conversation mode is ON.\")\n","    await app.initialize()\n","    await app.start()\n","    await app.updater.start_polling(drop_pending_updates=True)\n","    while True: await asyncio.sleep(1)\n","\n","if __name__ == '__main__':\n","    asyncio.run(main())"]},{"cell_type":"code","source":[],"metadata":{"id":"apZfrnA5dBOa"},"execution_count":null,"outputs":[]},{"cell_type":"code","source":[],"metadata":{"id":"FHTQ6H8mdChY"},"execution_count":null,"outputs":[]}],"metadata":{"colab":{"provenance":[],"authorship_tag":"ABX9TyOYCxy56WOySP+kAUzwTi5u"},"kernelspec":{"display_name":"Python 3","name":"python3"},"language_info":{"name":"python"}},"nbformat":4,"nbformat_minor":0}
+import nest_asyncio
+import asyncio
+import os
+from groq import Groq
+from telegram import Update
+from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
+import datetime
+
+nest_asyncio.apply()
+
+# Environment Variables
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+
+groq_client = Groq(api_key=GROQ_API_KEY)
+user_memories = {}
+
+async def handle_everything(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    today = datetime.date.today().strftime("%B %d, %Y")
+
+    if user_id not in user_memories:
+        user_memories[user_id] = [
+            {"role": "system", "content": f"Your name is Hana, a Super AI Assistant developed by Yalalem wagaye uog IT STUDENT. Today is {today}."}
+        ]
+
+    user_query = update.message.text
+    if not user_query: return
+
+    user_memories[user_id].append({"role": "user", "content": user_query})
+    
+    if len(user_memories[user_id]) > 12:
+        user_memories[user_id] = [user_memories[user_id][0]] + user_memories[user_id][-10:]
+
+    await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
+
+    try:
+        response = groq_client.chat.completions.create(
+            messages=user_memories[user_id],
+            model="llama-3.3-70b-versatile",
+        )
+        answer = response.choices[0].message.content
+        user_memories[user_id].append({"role": "assistant", "content": answer})
+        await update.message.reply_text(answer)
+    except Exception as e:
+        print(f"Error: {e}")
+        await update.message.reply_text("I'm having a little trouble. Let's try again!")
+
+async def main():
+    # Render "Port" ቼክ ስለሚያደርግ የውሸት ሰርቨር ማስነሳት
+    import http.server
+    import socketserver
+    import threading
+    
+    def run_dummy():
+        PORT = int(os.environ.get("PORT", 8080))
+        with socketserver.TCPServer(("", PORT), http.server.SimpleHTTPRequestHandler) as httpd:
+            httpd.serve_forever()
+    
+    threading.Thread(target=run_dummy, daemon=True).start()
+
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_everything))
+    
+    print("Hana is starting on Render...")
+    await app.initialize()
+    await app.start()
+    await app.updater.start_polling(drop_pending_updates=True)
+    while True: await asyncio.sleep(1)
+
+if __name__ == '__main__':
+    asyncio.run(main())
